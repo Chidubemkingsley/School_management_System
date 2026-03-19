@@ -1,4 +1,4 @@
-// constants.ts
+
 
 // Contract Addresses
 export const SMS_ADDRESS = "0x4a993f6ece900db22623527164e98e840347cdc9";
@@ -1357,18 +1357,3 @@ export interface Staff {
   exists: boolean;
 }
 
-// ==================== CONTRACT HOOKS HELPER ====================
-// This helps with type-safe contract initialization
-import { ethers } from 'ethers';
-
-export const getSMSContract = (
-  signerOrProvider: ethers.Signer | ethers.Provider
-): ethers.Contract => {
-  return new ethers.Contract(SMS_ADDRESS, SMS_ABI, signerOrProvider);
-};
-
-export const getTokenContract = (
-  signerOrProvider: ethers.Signer | ethers.Provider
-): ethers.Contract => {
-  return new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signerOrProvider);
-};

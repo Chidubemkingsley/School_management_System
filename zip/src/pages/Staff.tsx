@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
-import { useWriteContract, usePublicClient } from 'wagmi';
-import { SMS_ADDRESS, SMS_ABI } from '../lib/constants';
-import { parseEther } from 'viem';
+import { useState, type FormEvent } from 'react';
+import { activateStaff, payStaff, registerStaff, suspendStaff } from '../lib/mockData';
 
 export function Staff() {
   const [name, setName] = useState('');
@@ -13,82 +11,36 @@ export function Staff() {
   const [staffIdToSuspend, setStaffIdToSuspend] = useState('');
   const [staffIdToActivate, setStaffIdToActivate] = useState('');
 
-  const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient();
-
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const hash = await writeContractAsync({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'registerStaff',
-        args: [name, email, role, wallet, parseEther(salary)],
-      } as any);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      // Reset form or show success message
-      setName('');
-      setEmail('');
-      setWallet('');
-    } catch (error) {
-      console.error(error);
-    }
+    registerStaff({
+      name,
+      email,
+      role,
+      wallet,
+      salary: Number(salary),
+    });
+    setName('');
+    setEmail('');
+    setWallet('');
   };
 
-  const handlePayStaff = async (e: React.FormEvent) => {
+  const handlePayStaff = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const hash = await writeContractAsync({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'payStaff',
-        args: [BigInt(staffIdToPay)],
-      } as any);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      setStaffIdToPay('');
-    } catch (error) {
-      console.error(error);
-    }
+    payStaff(Number(staffIdToPay));
+    setStaffIdToPay('');
   };
 
-  const handleSuspendStaff = async (e: React.FormEvent) => {
+  const handleSuspendStaff = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const hash = await writeContractAsync({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'suspendStaff',
-        args: [BigInt(staffIdToSuspend)],
-      } as any);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      setStaffIdToSuspend('');
-    } catch (error) {
-      console.error(error);
-    }
+    suspendStaff(Number(staffIdToSuspend));
+    setStaffIdToSuspend('');
   };
 
-  const handleActivateStaff = async (e: React.FormEvent) => {
+  const handleActivateStaff = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const hash = await writeContractAsync({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'activateStaff',
-        args: [BigInt(staffIdToActivate)],
-      } as any);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      setStaffIdToActivate('');
-    } catch (error) {
-      console.error(error);
-    }
+    activateStaff(Number(staffIdToActivate));
+    setStaffIdToActivate('');
   };
 
   return (

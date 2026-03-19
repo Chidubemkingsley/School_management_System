@@ -1,77 +1,42 @@
-import { useState } from 'react';
-import { useReadContract, useWriteContract, useAccount, usePublicClient } from 'wagmi';
-import { SMS_ADDRESS, SMS_ABI, TOKEN_ADDRESS, TOKEN_ABI } from '../lib/constants';
-import { parseEther, formatEther } from 'viem';
+import { useEffect, useState } from 'react';
+import {
+  approveAllowance,
+  consumeAllowance,
+  getAllowance,
+  getStudentById,
+  getTuitionFee,
+  payStudentTuition,
+  subscribe,
+} from '../lib/mockData';
 
 export function Payments() {
-  const { address } = useAccount();
+  const [, setVersion] = useState(0);
   const [studentId, setStudentId] = useState('');
 
-  const { data: student } = useReadContract({
-    address: SMS_ADDRESS,
-    abi: SMS_ABI,
-    functionName: 'getStudent',
-    args: [BigInt(studentId || '0')],
-  });
+  useEffect(() => {
+    return subscribe(() => {
+      setVersion((value) => value + 1);
+    });
+  }, []);
 
-  const { data: tuitionFee } = useReadContract({
-    address: SMS_ADDRESS,
-    abi: SMS_ABI,
-    functionName: 'tuitionFee',
-    args: [student ? (student as any).level : BigInt(0)],
-  });
+  const parsedStudentId = Number(studentId) || 0;
+  const student = parsedStudentId ? getStudentById(parsedStudentId) : undefined;
+  const fee = student ? getTuitionFee(student.level) : 0;
+  const allowance = getAllowance();
+  const needsApproval = allowance < fee;
 
-  const fee = tuitionFee ? formatEther(tuitionFee as bigint) : '0';
-
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: TOKEN_ADDRESS,
-    abi: TOKEN_ABI,
-    functionName: 'allowance',
-    args: [address, SMS_ADDRESS],
-  });
-
-  const { writeContractAsync: writeToken } = useWriteContract();
-  const { writeContractAsync: writeSMS } = useWriteContract();
-  const publicClient = usePublicClient();
-
-  const handleApprove = async () => {
-    try {
-      const hash = await writeToken({
-        address: TOKEN_ADDRESS,
-        abi: TOKEN_ABI,
-        functionName: 'approve',
-        args: [SMS_ADDRESS, parseEther(fee)],
-      } as any);
-      
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      setStudentId('');
-      refetchAllowance();
-    } catch (error) {
-      console.error(error);
-    }
+  const handleApprove = () => {
+    approveAllowance(fee);
   };
 
-  const handlePay = async () => {
-    try {
-      const hash = await writeSMS({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'payTuition',
-        args: [BigInt(studentId)],
-      } as any);
-      
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      setStudentId('');
-    } catch (error) {
-      console.error(error);
+  const handlePay = () => {
+    if (!student) {
+      return;
     }
+    payStudentTuition(student.id);
+    consumeAllowance(fee);
+    setStudentId('');
   };
-
-  const needsApproval = allowance === undefined || (allowance as bigint) < parseEther(fee);
 
   return (
     <div className="space-y-8">
@@ -94,7 +59,7 @@ export function Payments() {
               disabled
               className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-slate-300 rounded-md p-2 border bg-slate-100"
             />
-            
+
             {needsApproval ? (
               <button
                 onClick={handleApprove}
@@ -111,9 +76,7 @@ export function Payments() {
               </button>
             )}
           </div>
-          <div className="mt-4 text-sm text-slate-500">
-            Current Allowance: {allowance ? formatEther(allowance as bigint) : '0'} STKN
-          </div>
+          <div className="mt-4 text-sm text-slate-500">Current Allowance: {allowance} STKN</div>
         </div>
       </div>
     </div>

@@ -1,56 +1,16 @@
-import React, { useState } from 'react';
-import { useWriteContract, useReadContract, useAccount, usePublicClient } from 'wagmi';
-import { SMS_ADDRESS, SMS_ABI } from '../lib/constants';
-import { parseEther } from 'viem';
+import { useState, type FormEvent } from 'react';
+import { setTuitionFee } from '../lib/mockData';
 
 export function Admin() {
-  const { address } = useAccount();
   const [level, setLevel] = useState('1');
   const [fee, setFee] = useState('100');
 
-  const { data: owner } = useReadContract({
-    address: SMS_ADDRESS,
-    abi: SMS_ABI,
-    functionName: 'owner',
-  });
-
-  const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient();
-
-  const handleUpdateFee = async (e: React.FormEvent) => {
+  const handleUpdateFee = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const hash = await writeContractAsync({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'setTuitionFee',
-        args: [BigInt(level), parseEther(fee)],
-      } as any);
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      setLevel('');
-      setFee('');
-    } catch (error) {
-      console.error(error);
-    }
+    setTuitionFee(Number(level), Number(fee));
+    setLevel('1');
+    setFee('100');
   };
-
-  const isAdmin = owner === address;
-
-  if (!isAdmin) {
-    return (
-      <div className="bg-red-50 border-l-4 border-red-400 p-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-red-700">
-              You must be the admin to view this page.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">

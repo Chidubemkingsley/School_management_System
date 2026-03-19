@@ -4,13 +4,12 @@
  */
 
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Dashboard } from './pages/Dashboard';
 import { Students } from './pages/Students';
 import { Staff } from './pages/Staff';
 import { Admin } from './pages/Admin';
 import { Payments } from './pages/Payments';
-import { GraduationCap, Users, UserCog, Settings } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 
 export default function App() {
   return (
@@ -43,7 +42,9 @@ export default function App() {
                 </div>
               </div>
               <div className="flex items-center">
-                <ConnectButton />
+                <span className="inline-flex items-center rounded-full bg-blue-400 text-white px-3 py-1 text-xs font-medium text-slate-700">
+                 Connect Wallet
+                </span>
               </div>
             </div>
           </div>

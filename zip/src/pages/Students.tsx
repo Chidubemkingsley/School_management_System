@@ -1,86 +1,37 @@
-import React, { useState } from 'react';
-import { useReadContract, useWriteContract, useAccount, usePublicClient } from 'wagmi';
-import { SMS_ADDRESS, SMS_ABI, TOKEN_ADDRESS, TOKEN_ABI } from '../lib/constants';
-import { parseEther } from 'viem';
+import { useEffect, useState, type FormEvent } from 'react';
+import { getStudents, payStudentTuition, registerStudent, subscribe } from '../lib/mockData';
 
 export function Students() {
-  const { address } = useAccount();
+  const [, setVersion] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [level, setLevel] = useState('1');
   const [wallet, setWallet] = useState('');
-  
-  const { data: students, refetch: refetchStudents } = useReadContract({
-    address: SMS_ADDRESS,
-    abi: SMS_ABI,
-    functionName: 'getAllStudents',
-  });
 
-  const { writeContractAsync: writeSMS } = useWriteContract();
-  const { writeContractAsync: writeToken } = useWriteContract();
-  const publicClient = usePublicClient();
+  useEffect(() => {
+    return subscribe(() => {
+      setVersion((value) => value + 1);
+    });
+  }, []);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const students = getStudents();
+
+  const handleRegister = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      const hash = await writeSMS({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'registerStudent',
-        args: [name, email, BigInt(level), wallet, false],
-      } as any);
-      
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      setName('');
-      setEmail('');
-      setLevel('1');
-      setWallet('');
-      refetchStudents();
-    } catch (error) {
-      console.error(error);
-    }
+    registerStudent({
+      name,
+      email,
+      level: Number(level),
+      wallet,
+    });
+    setName('');
+    setEmail('');
+    setLevel('1');
+    setWallet('');
   };
 
-  const handlePayTuition = async (studentId: bigint, level: bigint) => {
-    try {
-      if (!publicClient) return;
-      
-      const fee = await publicClient.readContract({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'tuitionFee',
-        args: [level],
-      } as any) as bigint;
-      
-      // Step 1: Approve
-      const approveHash = await writeToken({
-        address: TOKEN_ADDRESS,
-        abi: TOKEN_ABI,
-        functionName: 'approve',
-        args: [SMS_ADDRESS, fee],
-      } as any);
-      
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: approveHash });
-      }
-
-      // Step 2: Pay
-      const payHash = await writeSMS({
-        address: SMS_ADDRESS,
-        abi: SMS_ABI,
-        functionName: 'payTuition',
-        args: [studentId],
-      } as any);
-      
-      if (publicClient) {
-        await publicClient.waitForTransactionReceipt({ hash: payHash });
-      }
-      refetchStudents();
-    } catch (error) {
-      console.error(error);
-    }
+  const handlePayTuition = (studentId: number) => {
+    payStudentTuition(studentId);
   };
 
   return (
@@ -149,11 +100,11 @@ export function Students() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
-                      {(students as any[])?.map((student) => (
-                        <tr key={student.id.toString()}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{student.id.toString()}</td>
+                      {students.map((student) => (
+                        <tr key={student.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{student.id}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{student.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{student.level.toString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{student.level}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${student.isPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                               {student.isPaid ? 'Paid' : 'Unpaid'}
@@ -162,7 +113,7 @@ export function Students() {
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             {!student.isPaid && (
                               <button
-                                onClick={() => handlePayTuition(student.id, student.level)}
+                                onClick={() => handlePayTuition(student.id)}
                                 className="text-indigo-600 hover:text-indigo-900"
                               >
                                 Pay Tuition
